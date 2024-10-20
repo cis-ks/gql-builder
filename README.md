@@ -7,7 +7,7 @@ This library don't include any Client or Response-Decoding functionality and req
 ## Installation
 
 ```shell
-composer require cis/gql-builder
+composer require cis-bv/gql-builder
 ```
 
 ## Usage
