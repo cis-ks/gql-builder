@@ -1,0 +1,20 @@
+{
+  "name": "cis-bv/gql-builder",
+  "description": "Simple GraphQl-Query-Builder",
+  "minimum-stability": "stable",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Kay Schroeder",
+      "email": "kschroeder@cis-gotha.de"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Cis\\GqlBuilder\\": "src/"
+    }
+  },
+  "require": {
+    "php": "^8.3"
+  }
+}
