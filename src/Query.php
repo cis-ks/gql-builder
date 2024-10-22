@@ -21,13 +21,24 @@ class Query
     protected int $lineIndent = 4;
     protected int $flags = 0;
 
+    public static function root(
+        array $selectionSet = [],
+        array $fragments = [],
+        array $variables = [],
+    ): static
+    {
+        return static::create(selectionSet: $selectionSet, variables: $variables)->setFragments(array_map(
+            fn ($f) => $f instanceof Fragment ? $f : new Fragment(...$f),
+            $fragments
+        ));
+    }
+
     public static function create(
         string $name = '',
         string $alias = '',
         array $selectionSet = [],
         array $variables = []
-    ): Query {
-
+    ): static {
         return (new static($name, $alias))->setSelectionSet($selectionSet)->setVariables(array_map(
             fn ($v) => $v instanceof Variable ? $v : new Variable(...$v),
             $variables
@@ -39,11 +50,16 @@ class Query
         array $selectionSet,
         string $alias = '',
         array $arguments = [],
-    ): Query {
+    ): static {
         return (new static($name, $alias))->setNested()->setSelectionSet($selectionSet)->setArguments(array_map(
             fn ($a) => $a instanceof Argument ? $a : new Argument(...$a),
             $arguments
         ));
+    }
+
+    public static function fragment(string $name, string $reference, array $selectionSet): Fragment
+    {
+        return (new Fragment($name, $reference))->setSelectionSet($selectionSet);
     }
 
     public function __construct(

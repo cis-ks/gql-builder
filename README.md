@@ -12,7 +12,7 @@ composer require cis-bv/gql-builder
 
 ## Usage
 
-The main entry point for usage is the Query-class. You can simply create a Query with either a static or typical instantiate call.
+The main entry point for usage is the Query-class. You can create a Query with either a static or typical instantiate call.
 
 ### Create a Query 
 
