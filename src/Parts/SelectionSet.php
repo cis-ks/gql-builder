@@ -12,25 +12,31 @@ class SelectionSet
 
     public function __construct(array $selections = [])
     {
-        foreach ($selections as $selection) {
+        foreach ($selections as $index => $selection) {
             if (is_string($selection) || $selection instanceof InlineFragment) {
-                $this->selections[] = $selection;
+                $this->selections[$index] = $selection;
                 continue;
             }
 
             if ($selection instanceof Query) {
                 $selection->setNested();
-                $this->selections[] = $selection;
+                $this->selections[$index] = $selection;
                 continue;
             }
 
-            throw new InvalidArgumentException('Provided Value in Selection set must be a string or instance of InlineFragment or Query.');
+            throw new InvalidArgumentException('Provided Value in Selection set must be a string or instance ' .
+                'of InlineFragment or Query.');
         }
     }
 
     public function __toString(): string
     {
         return implode(' ', $this->selections);
+    }
+
+    public function toArray(): array
+    {
+        return $this->selections;
     }
 
     public function count(): int
@@ -41,5 +47,12 @@ class SelectionSet
     public function hasFields(): bool
     {
         return count(array_filter($this->selections, fn ($s) => !($s instanceof Query))) > 0;
+    }
+
+    public function merge(SelectionSet $secondSelectionSet): SelectionSet
+    {
+        $newSelectionSet = $this->selections + $secondSelectionSet->toArray();
+        ksort($newSelectionSet);
+        return new SelectionSet($newSelectionSet);
     }
 }

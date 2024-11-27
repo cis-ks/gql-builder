@@ -1,4 +1,6 @@
-<?php /** @noinspection PhpUnused */
+<?php
+
+/** @noinspection PhpUnused */
 
 namespace Cis\GqlBuilder;
 
@@ -11,12 +13,14 @@ use RuntimeException;
 class Query
 {
     public const int QUERY_PRETTY_PRINT = 1;
+    public const int QUERY_FILTER_OUT_TYPE_QUERIES = 2;
     protected const string OPERATION_NAME = 'query';
 
     protected SelectionSet $selectionSet;
     protected array $arguments = [];
     protected array $variables = [];
     protected array $fragments = [];
+    protected SelectionSet $typeQueries;
     protected bool $nested = false;
     protected int $lineIndent = 4;
     protected int $flags = 0;
@@ -25,12 +29,13 @@ class Query
         array $selectionSet = [],
         array $fragments = [],
         array $variables = [],
-    ): static
-    {
-        return static::create(selectionSet: $selectionSet, variables: $variables)->setFragments(array_map(
-            fn ($f) => $f instanceof Fragment ? $f : new Fragment(...$f),
-            $fragments
-        ));
+    ): static {
+        return static::create(selectionSet: $selectionSet, variables: $variables)->setFragments(
+            array_map(
+                fn($f) => $f instanceof Fragment ? $f : new Fragment(...$f),
+                $fragments
+            )
+        );
     }
 
     public static function create(
@@ -40,13 +45,17 @@ class Query
         array $variables = [],
         array $arguments = [],
     ): static {
-        return (new static($name, $alias))->setSelectionSet($selectionSet)->setVariables(array_map(
-            fn ($v) => $v instanceof Variable ? $v : new Variable(...$v),
-            $variables
-        ))->setArguments(array_map(
-            fn ($a) => $a instanceof Argument ? $a : new Argument(...$a),
-            $arguments
-        ));
+        return (new static($name, $alias))->setSelectionSet($selectionSet)->setVariables(
+            array_map(
+                fn($v) => $v instanceof Variable ? $v : new Variable(...$v),
+                $variables
+            )
+        )->setArguments(
+            array_map(
+                fn($a) => $a instanceof Argument ? $a : new Argument(...$a),
+                $arguments
+            )
+        );
     }
 
     public static function query(
@@ -55,10 +64,12 @@ class Query
         string $alias = '',
         array $arguments = [],
     ): static {
-        return (new static($name, $alias))->setNested()->setSelectionSet($selectionSet)->setArguments(array_map(
-            fn ($a) => $a instanceof Argument ? $a : new Argument(...$a),
-            $arguments
-        ));
+        return (new static($name, $alias))->setNested()->setSelectionSet($selectionSet)->setArguments(
+            array_map(
+                fn($a) => $a instanceof Argument ? $a : new Argument(...$a),
+                $arguments
+            )
+        );
     }
 
     public static function fragment(string $name, string $reference, array $selectionSet): Fragment
@@ -91,7 +102,7 @@ class Query
 
     public function setFragments(array $fragments): Query
     {
-        if (count(array_filter($fragments, fn ($f) => !($f instanceof Fragment))) > 0) {
+        if (count(array_filter($fragments, fn($f) => !($f instanceof Fragment))) > 0) {
             throw new InvalidArgumentException('Provided fragments should only contain Fragments!');
         }
 
@@ -107,12 +118,26 @@ class Query
 
     public function setSelectionSet(array $selectionSet): Query
     {
-        $this->selectionSet = new SelectionSet($selectionSet);
+        $this->typeQueries = new SelectionSet(
+            array_filter(
+                $selectionSet,
+                fn($set) => $set instanceof Query && $set->isTypeQuery()
+            )
+        );
+
+        $this->selectionSet = new SelectionSet(
+            array_filter(
+                $selectionSet,
+                fn($set) => !($set instanceof Query) || !$set->isTypeQuery()
+            )
+        );
+
         return $this;
     }
+
     public function setVariables(array $variables): Query
     {
-        if (count(array_filter($variables, fn ($v) => !($v instanceof Variable))) > 0) {
+        if (count(array_filter($variables, fn($v) => !($v instanceof Variable))) > 0) {
             throw new InvalidArgumentException('Provided list should only contain Variables!');
         }
         $this->variables = $variables;
@@ -137,6 +162,20 @@ class Query
     {
         $this->flags = $flags;
         return $this;
+    }
+
+    public function getTypeQueries(): array
+    {
+        if (isset($this->typeQueries)) {
+            return $this->typeQueries->toArray();
+        }
+
+        return [];
+    }
+
+    public function isTypeQuery(): bool
+    {
+        return $this->name === '__type';
     }
 
     protected function generateArguments(): string
@@ -173,7 +212,7 @@ class Query
                 $this->alias !== '' ? $this->alias . ': ' : '',
                 $this->name,
                 $this->generateArguments(),
-                $this->selectionSet
+                $this->getSelectionSet()
             )
             : $this->generateRootQuery();
 
@@ -188,6 +227,19 @@ class Query
         return $query;
     }
 
+    protected function getSelectionSet(): SelectionSet
+    {
+        if (
+            ($this->flags & static::QUERY_FILTER_OUT_TYPE_QUERIES) != static::QUERY_FILTER_OUT_TYPE_QUERIES
+            && isset($this->typeQueries)
+            && $this->typeQueries->count() > 0
+        ) {
+            return $this->selectionSet->merge($this->typeQueries);
+        } else {
+            return $this->selectionSet;
+        }
+    }
+
     protected function generateRootQuery(): string
     {
         if ($this->name !== '' && $this->selectionSet->hasFields()) {
@@ -198,7 +250,7 @@ class Query
                 $this->generateVariables(),
                 $this->name,
                 $this->generateArguments(),
-                $this->selectionSet
+                $this->getSelectionSet()
             );
         } else {
             return sprintf(
@@ -206,7 +258,7 @@ class Query
                 static::OPERATION_NAME,
                 $this->name !== '' ? ' ' . $this->name : '',
                 $this->generateVariables(),
-                $this->selectionSet
+                $this->getSelectionSet()
             );
         }
     }
@@ -248,7 +300,7 @@ class Query
                 unset($newQuery[$i - 1]);
             }
         }
-        return array_filter($newQuery, fn ($q) => trim($q) !== '');
+        return array_filter($newQuery, fn($q) => trim($q) !== '');
     }
 
     /**
@@ -285,7 +337,7 @@ class Query
                 $parts = array_map(fn($p) => $matches[1] . $p, explode(' ', ltrim($matches[0], "\t")));
                 array_push($reformattedQuery, ...$parts);
             } elseif (preg_match('/^(\t+)([\w_-] ?)+({)?$/', $value, $matches)) {
-                $parts = array_map(fn($p) => $matches[1] . $p, explode(' ' , trim($matches[0], "\t {")));
+                $parts = array_map(fn($p) => $matches[1] . $p, explode(' ', trim($matches[0], "\t {")));
                 if (array_key_exists(3, $matches) && $matches[3] == '{') {
                     $lastPart = array_pop($parts);
                     array_push($reformattedQuery, ...$parts);

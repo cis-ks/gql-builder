@@ -7,9 +7,9 @@ use InvalidArgumentException;
 class Argument
 {
     public function __construct(
-        protected string                      $name,
+        protected string $name,
         protected string|int|float|bool|array $value,
-        protected bool                        $isQueryType = false,
+        protected bool $isQueryType = false,
     ) {
         if ($this->isQueryType && !is_array($value)) {
             throw new InvalidArgumentException('Argument as Object requires value to be an array');
@@ -61,7 +61,7 @@ class Argument
 
     protected function generateObjectValue(mixed $value): string
     {
-        $value = stripslashes(json_encode($value, JSON_FORCE_OBJECT));
+        $value = stripslashes(json_encode($value));
         $value = preg_replace('/([{,])"([^"]+)":/', '$1$2: ', $value);
         return preg_replace('/"(\$[^"]+)"/', '$1', $value);
     }
