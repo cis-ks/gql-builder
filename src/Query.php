@@ -37,11 +37,15 @@ class Query
         string $name = '',
         string $alias = '',
         array $selectionSet = [],
-        array $variables = []
+        array $variables = [],
+        array $arguments = [],
     ): static {
         return (new static($name, $alias))->setSelectionSet($selectionSet)->setVariables(array_map(
             fn ($v) => $v instanceof Variable ? $v : new Variable(...$v),
             $variables
+        ))->setArguments(array_map(
+            fn ($a) => $a instanceof Argument ? $a : new Argument(...$a),
+            $arguments
         ));
     }
 
@@ -188,10 +192,12 @@ class Query
     {
         if ($this->name !== '' && $this->selectionSet->hasFields()) {
             return sprintf(
-                '%s{%s%s{%s}}',
+                '%s%s%s{%s%s{%s}}',
                 static::OPERATION_NAME,
-                $this->name,
+                $this->alias !== '' ? ' ' . $this->alias : '',
                 $this->generateVariables(),
+                $this->name,
+                $this->generateArguments(),
                 $this->selectionSet
             );
         } else {

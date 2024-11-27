@@ -13,6 +13,10 @@ class Variable
         protected bool $required = false,
         protected bool $multiple = false,
     ) {
+        if (str_starts_with($this->type->value, '[') && str_ends_with($this->type->value, ']')) {
+            $this->multiple = true;
+            $this->type = VariableTypes::{str_replace('Array', '', $this->type->name)};
+        }
     }
 
     public function __toString(): string
@@ -21,7 +25,7 @@ class Variable
             '$%s: %s%s%s%s',
             ltrim($this->name, '$'),
             $this->multiple ? '[' : '',
-            $this->type->name,
+            $this->type->value,
             $this->required ? '!' : '',
             $this->multiple ? ']' : '',
         ));

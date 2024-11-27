@@ -2,11 +2,13 @@
 
 namespace Cis\GqlBuilder\Enums;
 
-enum VariableTypes
+enum VariableTypes: string
 {
-    case String;
-    case Boolean;
-    case Int;
-
-    case Float;
+    case String = 'String';
+    case Boolean = 'Boolean';
+    case Int = 'Int';
+    case ID = 'ID';
+    case Float = 'Float';
+    case IDArray = '[ID]';
+    case StringArray = '[String]';
 }
