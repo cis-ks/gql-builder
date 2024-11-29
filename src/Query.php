@@ -178,6 +178,11 @@ class Query
         return $this->name === '__type';
     }
 
+    public function hasEmptySelectionSet(): bool
+    {
+        return !isset($this->selectionSet) || $this->selectionSet->count() == 0;
+    }
+
     protected function generateArguments(): string
     {
         if (count($this->arguments) == 0) {
@@ -227,7 +232,7 @@ class Query
         return $query;
     }
 
-    protected function getSelectionSet(): SelectionSet
+    public function getSelectionSet(): SelectionSet
     {
         if (
             ($this->flags & static::QUERY_FILTER_OUT_TYPE_QUERIES) != static::QUERY_FILTER_OUT_TYPE_QUERIES
