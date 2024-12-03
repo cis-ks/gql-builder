@@ -321,6 +321,9 @@ class Query
                 $level++;
             } elseif (str_ends_with($value, '}')) {
                 $level--;
+                if ($level < 0) {
+                    $level = 0;
+                }
                 $newQuery[$i] = str_repeat("\t", $level) . $value;
             } else {
                 $newQuery[$i] = str_repeat("\t", $level) . $value;
