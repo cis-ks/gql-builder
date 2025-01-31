@@ -15,6 +15,7 @@ class Query
     public const int QUERY_PRETTY_PRINT = 1;
     public const int QUERY_FILTER_OUT_TYPE_QUERIES = 2;
     protected const string OPERATION_NAME = 'query';
+    const string BASE_QUERY_FORMAT = '%s%s%s{%s}';
 
     protected SelectionSet $selectionSet;
     protected array $arguments = [];
@@ -24,6 +25,8 @@ class Query
     protected bool $nested = false;
     protected int $lineIndent = 4;
     protected int $flags = 0;
+
+    protected string $queryName = '';
 
     public static function root(
         array $selectionSet = [],
@@ -113,6 +116,12 @@ class Query
     public function setName(string $name): Query
     {
         $this->name = $name;
+        return $this;
+    }
+
+    public function setQueryName(string $name): Query
+    {
+        $this->queryName = $name;
         return $this;
     }
 
@@ -211,15 +220,7 @@ class Query
             throw new RuntimeException("Empty Selection-Sets are not supported");
         }
 
-        $query = $this->nested
-            ? sprintf(
-                '%s%s%s{%s}',
-                $this->alias !== '' ? $this->alias . ': ' : '',
-                $this->name,
-                $this->generateArguments(),
-                $this->getSelectionSet()
-            )
-            : $this->generateRootQuery();
+        $query = $this->nested ? $this->generateSubQuery() : $this->generateRootQuery();
 
         if (count($this->fragments) > 0) {
             $query .= PHP_EOL . implode(PHP_EOL, $this->fragments);
@@ -247,25 +248,26 @@ class Query
 
     protected function generateRootQuery(): string
     {
-        if ($this->name !== '' && $this->selectionSet->hasFields()) {
-            return sprintf(
-                '%s%s%s{%s%s{%s}}',
-                static::OPERATION_NAME,
-                $this->alias !== '' ? ' ' . $this->alias : '',
-                $this->generateVariables(),
-                $this->name,
-                $this->generateArguments(),
-                $this->getSelectionSet()
-            );
-        } else {
-            return sprintf(
-                '%s%s%s{%s}',
-                static::OPERATION_NAME,
-                $this->name !== '' ? ' ' . $this->name : '',
-                $this->generateVariables(),
-                $this->getSelectionSet()
-            );
-        }
+        return sprintf(
+            self::BASE_QUERY_FORMAT,
+            static::OPERATION_NAME,
+            $this->queryName !== '' ? ' ' . $this->queryName : '',
+            $this->generateVariables(),
+            ($this->name !== '' && $this->selectionSet->hasFields())
+                ? $this->generateSubQuery()
+                : $this->getSelectionSet()
+        );
+    }
+
+    protected function generateSubQuery(): string
+    {
+        return sprintf(
+            self::BASE_QUERY_FORMAT,
+            $this->alias !== '' ? $this->alias . ': ' : '',
+            $this->name,
+            $this->generateArguments(),
+            $this->getSelectionSet()
+        );
     }
 
     protected function prettifyQuery(string $query): string
