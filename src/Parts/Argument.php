@@ -35,6 +35,8 @@ class Argument
             is_bool($value) => $this->generateBoolValue($value),
             is_array($value) && $this->isQueryType => $this->generateObjectValue($value),
             is_array($value) => $this->generateArrayValue($value),
+            $value instanceof Argument => (string)$value,
+            default => throw new InvalidArgumentException('Unsupported value type')
         };
     }
 
