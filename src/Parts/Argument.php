@@ -66,13 +66,22 @@ class Argument
 
     protected function generateObjectValue(mixed $value): string
     {
-        $value = stripslashes(json_encode($value));
-        $value = preg_replace('/([{,])"([^"]+)":/', '$1$2: ', $value);
-        return preg_replace('/"(\$[^"]+)"/', '$1', $value);
+        if (is_array($value) && $this->hasOnlyArgumentsInList($value)) {
+            return sprintf("{%s}", implode(', ', array_map(fn ($v) => (string)$v, $value)));
+        } else {
+            $value = stripslashes(json_encode($value));
+            $value = preg_replace('/([{,])"([^"]+)":/', '$1$2: ', $value);
+            return preg_replace('/"(\$[^"]+)"/', '$1', $value);
+        }
     }
 
     protected function generateArrayValue(mixed $value): string
     {
         return implode(', ', array_map(fn ($v) => $this->generateValue($v), $value));
+    }
+
+    protected function hasOnlyArgumentsInList(array $value): bool
+    {
+        return count(array_filter($value, fn($v) => $v instanceof Argument)) == count($value);
     }
 }
