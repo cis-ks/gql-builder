@@ -10,6 +10,7 @@ class Argument
         protected string $name,
         protected string|int|float|bool|array $value,
         protected bool $isQueryType = false,
+        protected bool $valueIsEnum = false,
     ) {
         if ($this->isQueryType && !is_array($value)) {
             throw new InvalidArgumentException('Argument as Object requires value to be an array');
@@ -44,9 +45,11 @@ class Argument
 
     protected function generateStringValue(mixed $value): string
     {
-        return str_starts_with($value, '$')
-            ? $value
-            : '"' . addslashes($value) . '"';
+        if (str_starts_with($value, '$') || $this->valueIsEnum) {
+            return $value;
+        } else {
+            return '"' . addslashes($value) . '"';
+        }
     }
 
     protected function generateIntFloatValue(mixed $value): string
