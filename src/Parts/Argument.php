@@ -70,8 +70,15 @@ class Argument
             return sprintf("{%s}", implode(', ', array_map(fn ($v) => (string)$v, $value)));
         } else {
             $value = stripslashes(json_encode($value));
+            // Strip quotes from keys
             $value = preg_replace('/([{,])"([^"]+)":/', '$1$2: ', $value);
-            return preg_replace('/"(\$[^"]+)"/', '$1', $value);
+            // Strip quotes from variable-values
+            $value = preg_replace('/"(\$[^"]+)"/', '$1', $value);
+            if ($this->valueIsEnum) {
+                return preg_replace('/"([^"]+)"/', '$1', $value);
+            } else {
+                return $value;
+            }
         }
     }
 
